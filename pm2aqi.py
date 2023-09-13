@@ -1,10 +1,12 @@
 import tkinter as tk
 from tkinter import ttk
 
+# Function to calculate AQI based on the input PM2.5 value
 def calculate_aqi(event=None):
     try:
         pm_value = float(pm_var.get())
-        
+
+        # Determining the AQI based on PM2.5 concentration
         if 0 <= pm_value <= 12:
             aqi = int((50/12) * pm_value)
             index = 0
@@ -29,22 +31,31 @@ def calculate_aqi(event=None):
         else:
             aqi_output.set("PM2.5 value out of range (1-500).")
             return
-
+        
+        # Displaying the AQI
         aqi_reading.set(f"AQI: {aqi}")
+
+        # Getting health risk information
         category, sensitive_group, health_effect, cautionary = health_risks[index]
+        
+        # Creating the output string
         result = f"Category: {category}\n\n"
         result += f"Sensitive Groups: {sensitive_group}\n\n"
         result += f"Health Effects Statement: {health_effect}\n\n"
         result += f"Cautionary Statements: {cautionary}\n\n"
+        
+        # Setting the output variable
         aqi_output.set(result)
     except ValueError:
         aqi_output.set("Invalid input. Please enter a number.")
 
+# Initializing the main window
 root = tk.Tk()
 
 #root.geometry("400x600")
 root.title("PM2.5 to AQI Calculator")
 
+# Centering the window on the screen
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
 
@@ -101,13 +112,18 @@ health_risks = [
     ("Beyond AQI", "The entire population", "Health warnings of emergency conditions. The entire population is more likely to be affected.", "Everyone should avoid all physical activity outdoors.")
 ]
 
+# Creating AQI reading label
 aqi_reading = tk.StringVar()
 aqi_reading_label = ttk.Label(root, textvariable=aqi_reading, font=aqi_reading_font, background=color_output_bg, relief="solid", padding=10, justify="center")
 aqi_reading_label.pack(pady=5, padx=20)
 
+# Creating AQI info label
 aqi_output = tk.StringVar()
 aqi_info_label = ttk.Label(root, textvariable=aqi_output, justify=tk.LEFT, wraplength=350, font=output_font, background=color_output_bg, relief="solid", padding=10)
 aqi_info_label.pack(pady=15, padx=20, fill="x")
 
+# Execute the calculation function once at the beginning
 calculate_aqi()
+
+# Run the tkinter event loop
 root.mainloop()
