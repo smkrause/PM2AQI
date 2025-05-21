@@ -275,14 +275,14 @@ def auto_refresh_toggle():
 
 def schedule_auto_refresh():
     fetch_and_set_pm25_and_weather()
-    auto_refresh_job[0] = root.after(30000, schedule_auto_refresh)  # 30,000 ms = 30 seconds
+    auto_refresh_job[0] = root.after(60000, schedule_auto_refresh)  # 60,000 ms = 60 seconds
 
 # Fetch button
 fetch_button = ttk.Button(input_frame, text="Fetch PM2.5 & Weather", command=fetch_and_set_pm25_and_weather)
 fetch_button.grid(row=0, column=2, padx=(10, 0))
 
 # Auto-refresh checkbox
-auto_refresh_check = ttk.Checkbutton(root, text="Auto-Refresh (every 30s)", variable=auto_refresh_var, command=auto_refresh_toggle)
+auto_refresh_check = ttk.Checkbutton(root, text="Auto-Refresh (every 60s)", variable=auto_refresh_var, command=auto_refresh_toggle)
 auto_refresh_check.pack(pady=(0, 5))
 
 # AQI reading label
