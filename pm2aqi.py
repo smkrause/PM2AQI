@@ -99,11 +99,11 @@ def calculate_aqi(event=None):
         aqi_reading.set(f"AQI: {aqi}")
         # Getting health risk information
         category, sensitive_group, health_effect, cautionary = health_risks[index]
-        # Creating the output string
-        result = f"Category: {category}\n\n"
-        result += f"Sensitive Groups: {sensitive_group}\n\n"
-        result += f"Health Effects Statement: {health_effect}\n\n"
-        result += f"Cautionary Statements: {cautionary}\n\n"
+        # Creating the output string (single spaced)
+        result = f"Category: {category}\n"
+        result += f"Sensitive Groups: {sensitive_group}\n"
+        result += f"Health Effects Statement: {health_effect}\n"
+        result += f"Cautionary Statements: {cautionary}"
         # Setting the output variable
         aqi_output.set(result)
     except ValueError:
@@ -138,6 +138,76 @@ def load_api_keys_from_env():
 # Initializing the main window
 root = tk.Tk()
 root.title("PM2.5 to AQI Calculator")
+
+# Output and state variables (must be defined after root)
+aqi_reading = tk.StringVar()
+aqi_output = tk.StringVar()
+weather_output = tk.StringVar()
+auto_refresh_var = tk.BooleanVar(value=False)
+auto_refresh_job = [None]  # Use a mutable container to allow assignment in nested scope
+
+# Update weather data output (single label)
+def set_weather_output(weather_str):
+    lines = weather_str.strip().split("\n")
+    mid = (len(lines) + 1) // 2
+    col1 = "\n".join(lines[:mid])
+    col2 = "\n".join(lines[mid:])
+    weather_col1.config(text=col1)
+    weather_col2.config(text=col2)
+    weather_inner.update_idletasks()
+    weather_canvas.config(scrollregion=weather_canvas.bbox("all"))
+
+def fetch_and_set_pm25_and_weather():
+    api_key = api_key_var.get().strip()
+    app_key = app_key_var.get().strip()
+    if not api_key or not app_key:
+        aqi_output.set("Please enter both API Key and App Key.")
+        set_weather_output("")
+        return
+    weather_data, error = fetch_pm25_and_weather_from_ambient(api_key, app_key)
+    if error:
+        aqi_output.set(error)
+        set_weather_output("")
+    else:
+        pm_var.set(str(weather_data.get('pm25', '')))
+        calculate_aqi()
+        weather_str = f"Date: {weather_data.get('date', 'N/A')}\n"
+        weather_str += f"Outdoor Temp: {weather_data.get('tempf', 'N/A')} °F\n"
+        weather_str += f"Outdoor Humidity: {weather_data.get('humidity', 'N/A')}%\n"
+        weather_str += f"Barometer (rel): {weather_data.get('baromrelin', 'N/A')} inHg\n"
+        weather_str += f"Barometer (abs): {weather_data.get('baromabsin', 'N/A')} inHg\n"
+        weather_str += f"Wind Speed: {weather_data.get('windspeedmph', 'N/A')} mph\n"
+        weather_str += f"Wind Gust: {weather_data.get('windgustmph', 'N/A')} mph\n"
+        weather_str += f"Wind Dir: {weather_data.get('winddir', 'N/A')}°\n"
+        weather_str += f"Max Daily Gust: {weather_data.get('maxdailygust', 'N/A')} mph\n"
+        weather_str += f"Rain (hour): {weather_data.get('hourlyrainin', 'N/A')} in\n"
+        weather_str += f"Rain (day): {weather_data.get('dailyrainin', 'N/A')} in\n"
+        weather_str += f"Rain (week): {weather_data.get('weeklyrainin', 'N/A')} in\n"
+        weather_str += f"Rain (month): {weather_data.get('monthlyrainin', 'N/A')} in\n"
+        weather_str += f"Rain (year): {weather_data.get('yearlyrainin', 'N/A')} in\n"
+        weather_str += f"Solar Radiation: {weather_data.get('solarradiation', 'N/A')} W/m²\n"
+        weather_str += f"UV Index: {weather_data.get('uv', 'N/A')}\n"
+        weather_str += f"Indoor Temp: {weather_data.get('tempinf', 'N/A')} °F\n"
+        weather_str += f"Indoor Humidity: {weather_data.get('humidityin', 'N/A')}%\n"
+        weather_str += f"Indoor PM2.5: {weather_data.get('pm25_in', 'N/A')} μg/m³\n"
+        weather_str += f"Indoor PM2.5 (24h avg): {weather_data.get('pm25_in_24h', 'N/A')} μg/m³\n"
+        weather_str += f"Outdoor Feels Like: {weather_data.get('feelsLike', 'N/A')} °F\n"
+        weather_str += f"Outdoor Dew Point: {weather_data.get('dewPoint', 'N/A')} °F\n"
+        weather_str += f"Indoor Feels Like: {weather_data.get('feelsLikein', 'N/A')} °F\n"
+        weather_str += f"Indoor Dew Point: {weather_data.get('dewPointin', 'N/A')} °F\n"
+        set_weather_output(weather_str)
+
+def auto_refresh_toggle():
+    if auto_refresh_var.get():
+        schedule_auto_refresh()
+    else:
+        if auto_refresh_job[0] is not None:
+            root.after_cancel(auto_refresh_job[0])
+            auto_refresh_job[0] = None
+
+def schedule_auto_refresh():
+    fetch_and_set_pm25_and_weather()
+    auto_refresh_job[0] = root.after(60000, schedule_auto_refresh)  # 60,000 ms = 60 seconds
 
 # Centering the window on the screen
 screen_width = root.winfo_screenwidth()
@@ -175,16 +245,16 @@ api_key_var = tk.StringVar()
 app_key_var = tk.StringVar()
 
 api_key_label = ttk.Label(api_frame, text="API Key:", font=("Arial", 12), background=color_bg)
-api_key_entry = ttk.Entry(api_frame, textvariable=api_key_var, width=45)
-app_key_label = ttk.Label(api_frame, text="App Key:", font=("Arial", 12), background=color_bg)
-app_key_entry = ttk.Entry(api_frame, textvariable=app_key_var, width=45)
-save_api_button = ttk.Button(api_frame, text="Save API", command=save_api_keys)
-
-# Place widgets using grid
 api_key_label.grid(row=0, column=0, sticky="e", padx=(0, 5))
+api_key_entry = ttk.Entry(api_frame, textvariable=api_key_var, width=45)
 api_key_entry.grid(row=0, column=1, padx=(0, 10))
+
+app_key_label = ttk.Label(api_frame, text="App Key:", font=("Arial", 12), background=color_bg)
 app_key_label.grid(row=1, column=0, sticky="e", padx=(0, 5))
+app_key_entry = ttk.Entry(api_frame, textvariable=app_key_var, width=45)
 app_key_entry.grid(row=1, column=1, padx=(0, 10))
+
+save_api_button = ttk.Button(api_frame, text="Save API", command=save_api_keys)
 save_api_button.grid(row=2, column=1, sticky="e", pady=(5,0))
 
 # On startup, check for .env and hide API fields if found
@@ -212,72 +282,6 @@ pm_entry.grid(row=0, column=0, padx=(0, 10))
 calculate_button = ttk.Button(input_frame, text="Calculate AQI", command=calculate_aqi)
 calculate_button.grid(row=0, column=1)
 
-# Output variables
-aqi_reading = tk.StringVar()
-aqi_output = tk.StringVar()
-weather_output = tk.StringVar()
-
-# Auto-refresh variables
-auto_refresh_var = tk.BooleanVar(value=False)
-auto_refresh_job = [None]  # Use a mutable container to allow assignment in nested scope
-
-# Fetch and set PM2.5 and weather data
-def fetch_and_set_pm25_and_weather():
-    api_key = api_key_var.get().strip()
-    app_key = app_key_var.get().strip()
-    if not api_key or not app_key:
-        aqi_output.set("Please enter both API Key and App Key.")
-        weather_output.set("")
-        return
-    weather_data, error = fetch_pm25_and_weather_from_ambient(api_key, app_key)
-    if error:
-        aqi_output.set(error)
-        weather_output.set("")
-    else:
-        pm_var.set(str(weather_data.get('pm25', '')))
-        calculate_aqi()
-        # Format weather data for display (no battery fields)
-        weather_str = f"Date: {weather_data.get('date', 'N/A')}\n"
-        weather_str += f"Outdoor Temp: {weather_data.get('tempf', 'N/A')} °F\n"
-        weather_str += f"Outdoor Humidity: {weather_data.get('humidity', 'N/A')}%\n"
-        weather_str += f"Barometer (rel): {weather_data.get('baromrelin', 'N/A')} inHg\n"
-        weather_str += f"Barometer (abs): {weather_data.get('baromabsin', 'N/A')} inHg\n"
-        weather_str += f"Wind Speed: {weather_data.get('windspeedmph', 'N/A')} mph\n"
-        weather_str += f"Wind Gust: {weather_data.get('windgustmph', 'N/A')} mph\n"
-        weather_str += f"Wind Dir: {weather_data.get('winddir', 'N/A')}°\n"
-        weather_str += f"Max Daily Gust: {weather_data.get('maxdailygust', 'N/A')} mph\n"
-        weather_str += f"Rain (hour): {weather_data.get('hourlyrainin', 'N/A')} in\n"
-        weather_str += f"Rain (day): {weather_data.get('dailyrainin', 'N/A')} in\n"
-        weather_str += f"Rain (week): {weather_data.get('weeklyrainin', 'N/A')} in\n"
-        weather_str += f"Rain (month): {weather_data.get('monthlyrainin', 'N/A')} in\n"
-        weather_str += f"Rain (year): {weather_data.get('yearlyrainin', 'N/A')} in\n"
-        weather_str += f"Solar Radiation: {weather_data.get('solarradiation', 'N/A')} W/m²\n"
-        weather_str += f"UV Index: {weather_data.get('uv', 'N/A')}\n"
-        weather_str += f"Indoor Temp: {weather_data.get('tempinf', 'N/A')} °F\n"
-        weather_str += f"Indoor Humidity: {weather_data.get('humidityin', 'N/A')}%\n"
-        weather_str += f"Indoor PM2.5: {weather_data.get('pm25_in', 'N/A')} μg/m³\n"
-        weather_str += f"Indoor PM2.5 (24h avg): {weather_data.get('pm25_in_24h', 'N/A')} μg/m³\n"
-        weather_str += f"Outdoor Feels Like: {weather_data.get('feelsLike', 'N/A')} °F\n"
-        weather_str += f"Outdoor Dew Point: {weather_data.get('dewPoint', 'N/A')} °F\n"
-        weather_str += f"Indoor Feels Like: {weather_data.get('feelsLikein', 'N/A')} °F\n"
-        weather_str += f"Indoor Dew Point: {weather_data.get('dewPointin', 'N/A')} °F\n"
-        weather_output.set(weather_str)
-
-# Auto-refresh logic
-
-def auto_refresh_toggle():
-    if auto_refresh_var.get():
-        schedule_auto_refresh()
-    else:
-        if auto_refresh_job[0] is not None:
-            root.after_cancel(auto_refresh_job[0])
-            auto_refresh_job[0] = None
-
-def schedule_auto_refresh():
-    fetch_and_set_pm25_and_weather()
-    auto_refresh_job[0] = root.after(60000, schedule_auto_refresh)  # 60,000 ms = 60 seconds
-
-# Fetch button
 fetch_button = ttk.Button(input_frame, text="Fetch PM2.5 & Weather", command=fetch_and_set_pm25_and_weather)
 fetch_button.grid(row=0, column=2, padx=(10, 0))
 
@@ -289,13 +293,29 @@ auto_refresh_check.pack(pady=(0, 5))
 aqi_reading_label = ttk.Label(root, textvariable=aqi_reading, font=aqi_reading_font, background=color_output_bg, relief="solid", padding=10, justify="center")
 aqi_reading_label.pack(pady=5, padx=20)
 
-# AQI info label
-aqi_info_label = ttk.Label(root, textvariable=aqi_output, justify=tk.LEFT, wraplength=350, font=output_font, background=color_output_bg, relief="solid", padding=10)
-aqi_info_label.pack(pady=15, padx=20, fill="x")
+# Weather data output with two columns and scrollbar
+weather_frame = tk.Frame(root, background=color_output_bg, relief="solid", bd=1)
+weather_frame.pack(pady=5, padx=20, fill="x")
 
-# Weather data output label
-weather_info_label = ttk.Label(root, textvariable=weather_output, justify=tk.LEFT, wraplength=350, font=output_font, background=color_output_bg, relief="solid", padding=10)
-weather_info_label.pack(pady=5, padx=20, fill="x")
+weather_canvas = tk.Canvas(weather_frame, background=color_output_bg, highlightthickness=0, height=240)
+weather_scrollbar = ttk.Scrollbar(weather_frame, orient="vertical", command=weather_canvas.yview)
+weather_inner = tk.Frame(weather_canvas, background=color_output_bg)
+
+weather_inner_id = weather_canvas.create_window((0, 0), window=weather_inner, anchor="nw")
+weather_canvas.configure(yscrollcommand=weather_scrollbar.set)
+
+weather_canvas.pack(side="left", fill="both", expand=True)
+weather_scrollbar.pack(side="right", fill="y")
+
+weather_col1 = tk.Label(weather_inner, text="", justify=tk.LEFT, font=output_font, background=color_output_bg)
+weather_col2 = tk.Label(weather_inner, text="", justify=tk.LEFT, font=output_font, background=color_output_bg)
+weather_col1.grid(row=0, column=0, sticky="nw", padx=(0, 16), pady=0)
+weather_col2.grid(row=0, column=1, sticky="nw", padx=(0, 0), pady=0)
+
+# AQI info label (health info, now below weather data, smaller font, single spaced)
+small_output_font = ("Arial", 10)
+aqi_info_label = ttk.Label(root, textvariable=aqi_output, justify=tk.LEFT, wraplength=350, font=small_output_font, background=color_output_bg, relief="solid", padding=8)
+aqi_info_label.pack(pady=10, padx=20, fill="x")
 
 # Start the Tkinter event loop
 root.mainloop()
