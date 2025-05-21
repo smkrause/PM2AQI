@@ -139,6 +139,9 @@ def load_api_keys_from_env():
 root = tk.Tk()
 root.title("PM2.5 to AQI Calculator")
 
+# Set a minimum window width to ensure both columns are visible
+root.minsize(700, 600)
+
 # Output and state variables (must be defined after root)
 aqi_reading = tk.StringVar()
 aqi_output = tk.StringVar()
@@ -208,15 +211,6 @@ def auto_refresh_toggle():
 def schedule_auto_refresh():
     fetch_and_set_pm25_and_weather()
     auto_refresh_job[0] = root.after(60000, schedule_auto_refresh)  # 60,000 ms = 60 seconds
-
-# Centering the window on the screen
-window_width = 600
-window_height = 650
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-x = (screen_width/2) - (window_width/2)
-y = (screen_height/2) - (window_height/2)
-root.geometry(f"{window_width}x{window_height}+{int(x)}+{int(y)}")
 
 # Styles
 color_bg = "#f0f4f6"
@@ -295,11 +289,11 @@ aqi_reading_label.pack(pady=5, padx=20)
 
 # Weather data output with two columns and scrollbar
 weather_frame = tk.Frame(root, background=color_output_bg, relief="solid", bd=1)
-weather_frame.pack(pady=5, padx=20, fill="x")
+weather_frame.pack(pady=5, padx=20, fill="both", expand=True)
 
 weather_canvas = tk.Canvas(weather_frame, background=color_output_bg, highlightthickness=0, height=240)
 weather_scrollbar = ttk.Scrollbar(weather_frame, orient="vertical", command=weather_canvas.yview)
-weather_inner = tk.Frame(weather_canvas, background=color_output_bg)
+weather_inner = tk.Frame(weather_canvas, background=color_output_bg, width=600)  # Set min width for both columns
 
 weather_inner_id = weather_canvas.create_window((0, 0), window=weather_inner, anchor="nw")
 weather_canvas.configure(yscrollcommand=weather_scrollbar.set)
@@ -312,10 +306,19 @@ weather_col2 = tk.Label(weather_inner, text="", justify=tk.LEFT, font=output_fon
 weather_col1.grid(row=0, column=0, sticky="nw", padx=(0, 16), pady=0)
 weather_col2.grid(row=0, column=1, sticky="nw", padx=(0, 0), pady=0)
 
+# Ensure weather_inner always fits both columns and updates canvas width
+
+def on_weather_inner_configure(event):
+    # Set canvas scrollregion only (do not force width)
+    weather_canvas.configure(scrollregion=weather_canvas.bbox("all"))
+
+weather_inner.bind("<Configure>", on_weather_inner_configure)
+
 # AQI info label (health info, now below weather data, smaller font, single spaced)
 small_output_font = ("Arial", 10)
 aqi_info_label = ttk.Label(root, textvariable=aqi_output, justify=tk.LEFT, wraplength=350, font=small_output_font, background=color_output_bg, relief="solid", padding=8)
 aqi_info_label.pack(pady=10, padx=20, fill="x")
 
 # Start the Tkinter event loop
+root.geometry("")  # Auto-size window to fit content
 root.mainloop()
