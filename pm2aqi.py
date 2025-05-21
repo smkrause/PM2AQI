@@ -210,10 +210,10 @@ def schedule_auto_refresh():
     auto_refresh_job[0] = root.after(60000, schedule_auto_refresh)  # 60,000 ms = 60 seconds
 
 # Centering the window on the screen
+window_width = 600
+window_height = 650
 screen_width = root.winfo_screenwidth()
 screen_height = root.winfo_screenheight()
-window_width = 400
-window_height = 650
 x = (screen_width/2) - (window_width/2)
 y = (screen_height/2) - (window_height/2)
 root.geometry(f"{window_width}x{window_height}+{int(x)}+{int(y)}")
