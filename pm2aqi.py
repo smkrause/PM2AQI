@@ -30,8 +30,9 @@ class PM2AQIApp(QWidget):
         self.api_fields_visible = True
         self.init_ui()
         self.load_api_keys()
-        # Set window icon
-        self.setWindowIcon(QIcon(os.path.join('assets', 'icon.ico')))
+        # Set window icon to use the new PNG image
+        from PyQt6.QtGui import QIcon
+        self.setWindowIcon(QIcon(os.path.join('assets', 'aqi+.png')))
 
     def load_api_keys(self):
         load_dotenv()
