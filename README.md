@@ -89,15 +89,6 @@ All data is presented in a visually organized, easy-to-read format with collapsi
 
 ---
 
-## Who Should Use This
-
-- Environmental Scientists
-- Health Professionals
-- Concerned Citizens
-- Policy Makers
-- Students and Educators
-
----
 
 ## License
 
