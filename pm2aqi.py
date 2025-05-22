@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QLineEdit, QCheckBox, QTextEdit, QGroupBox, QFrame, QSizePolicy
 )
 from PyQt6.QtCore import Qt, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QIcon
 import requests
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
@@ -30,6 +30,8 @@ class PM2AQIApp(QWidget):
         self.api_fields_visible = True
         self.init_ui()
         self.load_api_keys()
+        # Set window icon
+        self.setWindowIcon(QIcon(os.path.join('assets', 'icon.ico')))
 
     def load_api_keys(self):
         load_dotenv()
