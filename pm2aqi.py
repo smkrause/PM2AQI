@@ -122,12 +122,6 @@ class PM2AQIApp(QWidget):
         self.aqi_badge.setStyleSheet("border-radius: 16px; padding: 16px; background: #e0e0e0; color: #222;")
         layout.addWidget(self.aqi_badge)
 
-        # Health category
-        self.aqi_category = QLabel("")
-        self.aqi_category.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.aqi_category.setFont(QFont("Arial", 14, QFont.Weight.Bold))
-        layout.addWidget(self.aqi_category)
-
         # Show AQI Details button
         self.show_aqi_details_btn = QPushButton("Show AQI Details")
         self.show_aqi_details_btn.setCheckable(True)
@@ -151,11 +145,11 @@ class PM2AQIApp(QWidget):
             "border-radius: 16px; padding: 16px; background: #1976d2; color: #fff; "
             "font-size: 16px; min-width: 120px; min-height: 48px; text-align: center;"
         )
-        self.o_temp_label = QLabel("Temp: -- °F")
+        self.o_temp_label = QLabel("Outdoor Temp: -- °F")
         self.o_temp_label.setFont(QFont("Arial", 16))
         self.o_temp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.o_temp_label.setStyleSheet(bubble_style)
-        self.i_temp_label = QLabel("I-Temp: -- °F")
+        self.i_temp_label = QLabel("Indoor Temp: -- °F")
         self.i_temp_label.setFont(QFont("Arial", 16))
         self.i_temp_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.i_temp_label.setStyleSheet(bubble_style)
@@ -194,12 +188,6 @@ class PM2AQIApp(QWidget):
         self.weather_text.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.weather_text)
 
-        # Matplotlib chart area (small card)
-        self.figure, self.ax = plt.subplots(figsize=(3, 2))
-        self.canvas = FigureCanvas(self.figure)
-        self.canvas.setMaximumHeight(200)
-        layout.addWidget(self.canvas)
-
         self.setLayout(layout)
 
     def toggle_weather_details(self, checked):
@@ -218,11 +206,14 @@ class PM2AQIApp(QWidget):
             aqi, category, color = self.aqi_from_pm25(pm_value)
             self.aqi_badge.setText(f"AQI: {aqi}")
             self.aqi_badge.setStyleSheet(f"border-radius: 16px; padding: 16px; background: {color}; color: #fff;")
-            self.aqi_category.setText(category)
+            # If AQI details are visible, update them immediately
+            if self.aqi_details_text.isVisible():
+                self.aqi_details_text.setText(self.get_aqi_details_text())
         except ValueError:
             self.aqi_badge.setText("Invalid input")
             self.aqi_badge.setStyleSheet("border-radius: 16px; padding: 16px; background: #e57373; color: #fff;")
-            self.aqi_category.setText("")
+            if self.aqi_details_text.isVisible():
+                self.aqi_details_text.setText("No valid PM2.5 value.")
 
     def aqi_from_pm25(self, pm_value):
         # Returns (aqi, category, color)
@@ -268,11 +259,11 @@ class PM2AQIApp(QWidget):
             self.update_summary(data)
             self.calculate_aqi()
             self.weather_text.setText(self.format_weather(data))
-            self.plot_pm25(data)
+            # Removed PM2.5 plot
 
     def update_summary(self, data):
-        self.o_temp_label.setText(f"Temp: {data.get('tempf', '--')} °F")
-        self.i_temp_label.setText(f"I-Temp: {data.get('tempinf', '--')} °F")
+        self.o_temp_label.setText(f"Outdoor Temp: {data.get('tempf', '--')} °F")
+        self.i_temp_label.setText(f"Indoor Temp: {data.get('tempinf', '--')} °F")
         self.wind_label.setText(f"Wind: {data.get('windspeedmph', '--')} mph")
         self.rain_label.setText(f"Rain: {data.get('dailyrainin', '--')} in")
 
@@ -389,15 +380,6 @@ class PM2AQIApp(QWidget):
         pad = max(0, 20)
         centered_block = "\n".join([f"{'':<{pad}}{line}" for line in lines])
         return f"\n{centered_block}\n"
-
-    def plot_pm25(self, data):
-        self.ax.clear()
-        pm25 = data.get('pm25')
-        if pm25 is not None:
-            self.ax.bar(["PM2.5"], [pm25], color='#43a047')
-            self.ax.set_ylabel("μg/m³")
-            self.ax.set_title("Current PM2.5 Value")
-        self.canvas.draw()
 
     def toggle_auto_refresh(self, state):
         if state == Qt.CheckState.Checked.value:
