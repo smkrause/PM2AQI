@@ -1,0 +1,7 @@
+PyQt6
+qasync
+python-dotenv
+requests
+matplotlib
+tzdata
+pytz
