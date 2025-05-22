@@ -46,6 +46,24 @@ class Dashboard(QWidget):
         main_layout.setSpacing(8)
         main_layout.setContentsMargins(12, 12, 12, 12)
 
+        # PM2.5 and AQI widgets (top row)
+        pm_aqi_frame = QFrame()
+        pm_aqi_frame.setStyleSheet("background: #181818; border: none;")
+        pm_aqi_layout = QHBoxLayout()
+        pm_aqi_layout.setContentsMargins(0, 0, 0, 0)
+        pm_aqi_layout.setSpacing(24)
+        self.pm25_widget = QLabel("PM2.5: -- μg/m³")
+        self.pm25_widget.setFont(QFont("Arial", 22, QFont.Weight.Bold))
+        self.pm25_widget.setStyleSheet("color: #4fc3f7; padding: 4px 16px 4px 4px;")
+        self.aqi_widget = QLabel("AQI: --")
+        self.aqi_widget.setFont(QFont("Arial", 22, QFont.Weight.Bold))
+        self.aqi_widget.setStyleSheet("color: #fff; padding: 4px 4px 4px 16px;")
+        pm_aqi_layout.addWidget(self.pm25_widget)
+        pm_aqi_layout.addWidget(self.aqi_widget)
+        pm_aqi_layout.addStretch()
+        pm_aqi_frame.setLayout(pm_aqi_layout)
+        main_layout.addWidget(pm_aqi_frame, 0, 0, 1, 2)
+
         # WIND (Gust) -> WIND
         wind_frame = QFrame()
         wind_frame.setStyleSheet("background: #222; border-radius: 8px;")
@@ -66,7 +84,7 @@ class Dashboard(QWidget):
         wind_layout.addWidget(self.wind_speed)
         wind_layout.addWidget(wind_unit)
         wind_frame.setLayout(wind_layout)
-        main_layout.addWidget(wind_frame, 0, 0, 2, 1)
+        main_layout.addWidget(wind_frame, 1, 0, 1, 1)
 
         # OUTDOOR (Temp & Humidity)
         outdoor_frame = QFrame()
@@ -91,7 +109,7 @@ class Dashboard(QWidget):
         outdoor_layout.addWidget(self.out_temp, alignment=Qt.AlignmentFlag.AlignCenter)
         outdoor_layout.addWidget(self.out_hum, alignment=Qt.AlignmentFlag.AlignCenter)
         outdoor_frame.setLayout(outdoor_layout)
-        main_layout.addWidget(outdoor_frame, 0, 1, 2, 1)
+        main_layout.addWidget(outdoor_frame, 1, 1, 1, 1)
 
         # RAIN (blue, below wind)
         rain_frame = QFrame()
@@ -126,7 +144,7 @@ class Dashboard(QWidget):
         self.in_hum.setStyleSheet("color: #ffb74d;")
         indoor_layout.addWidget(indoor_label)
         indoor_layout.addWidget(self.in_temp)
-        indoor_layout.addWidget(self.in_hum)
+        indoor_layout.addWidget(self.in_hum, alignment=Qt.AlignmentFlag.AlignCenter)
         indoor_frame.setLayout(indoor_layout)
         main_layout.addWidget(indoor_frame, 2, 1, 1, 1)
 
@@ -135,7 +153,7 @@ class Dashboard(QWidget):
         time_frame.setStyleSheet("background: #181818;")
         time_layout = QVBoxLayout()
         self.time_date_label = QLabel("1:57 Thu 05.22")
-        self.time_date_label.setFont(QFont("Arial", 40, QFont.Weight.Bold))
+        self.time_date_label.setFont(QFont("Arial", 35, QFont.Weight.Bold))
         self.time_date_label.setStyleSheet("color: #ffe082;")
         self.time_date_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         time_layout.addWidget(self.time_date_label)
@@ -254,11 +272,17 @@ class Dashboard(QWidget):
             self.uv_level.setText(level)
         except Exception:
             self.uv_level.setText("--")
-        self.light_value.setText(str(data.get('solarradiation', '--')))
-        # Update Air Quality row
-        pm25 = data.get('pm25', '--')
-        aqi = data.get('aqi', '--')
-        self.pm25_label.setText(f"PM 2.5: {pm25} | AQI: {aqi}")
+        self.light_value.setText(str(data.get('solarradiation', '--')))        # PM2.5 and AQI update
+        pm25 = data.get('pm25', None)
+        if pm25 is None or pm25 == '--':
+            pm25 = data.get('pm25_in', '--')
+        self.pm25_widget.setText(f"PM2.5: {pm25} μg/m³")
+        try:
+            pm25_val = float(pm25)
+            aqi = self.aqi_from_pm25(pm25_val)
+            self.aqi_widget.setText(f"AQI: {aqi}")
+        except Exception:
+            self.aqi_widget.setText("AQI: --")
         # Forecast icon (simple mapping)
         forecast = data.get('weather', 'cloudy')
         icon_map = {
@@ -326,6 +350,25 @@ class Dashboard(QWidget):
             return last_data, None
         except Exception as e:
             return None, f'Error fetching data: {e}'
+
+    def aqi_from_pm25(self, pm_value):
+        # Returns AQI as int (US EPA breakpoints)
+        if 0 <= pm_value <= 12:
+            return int((50/12) * pm_value)
+        elif 12 < pm_value <= 35.4:
+            return int(((100-51)/(35.4-12.1)) * (pm_value-12.1) + 51)
+        elif 35.4 < pm_value <= 55.4:
+            return int(((150-101)/(55.4-35.5)) * (pm_value-35.5) + 101)
+        elif 55.4 < pm_value <= 150.4:
+            return int(((200-151)/(150.4-55.5)) * (pm_value-55.5) + 151)
+        elif 150.4 < pm_value <= 250.4:
+            return int(((300-201)/(250.4-150.5)) * (pm_value-150.5) + 201)
+        elif 250.4 < pm_value <= 350.4:
+            return int(((400-301)/(350.4-250.5)) * (pm_value-250.5) + 301)
+        elif 350.4 < pm_value <= 500.4:
+            return int(((500-401)/(500.4-350.5)) * (pm_value-350.5) + 401)
+        else:
+            return 500
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
