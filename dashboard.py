@@ -143,7 +143,7 @@ class Dashboard(QWidget):
         self.in_hum.setFont(font_large)
         self.in_hum.setStyleSheet("color: #ffb74d;")
         indoor_layout.addWidget(indoor_label)
-        indoor_layout.addWidget(self.in_temp)
+        indoor_layout.addWidget(self.in_temp, alignment=Qt.AlignmentFlag.AlignCenter)
         indoor_layout.addWidget(self.in_hum, alignment=Qt.AlignmentFlag.AlignCenter)
         indoor_frame.setLayout(indoor_layout)
         main_layout.addWidget(indoor_frame, 2, 1, 1, 1)
