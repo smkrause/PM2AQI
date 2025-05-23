@@ -309,7 +309,7 @@ class PM2AQIApp(QWidget):
             }
             pm25 = last_data.get('pm25')
             if pm25 is None:
-                pm25 = last_data.get('pm25_in')
+                pm25 = last_data.get('pm25_out')
             if pm25 is None:
                 return None, "No PM2.5 data found."
             weather_data['pm25'] = pm25

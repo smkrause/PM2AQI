@@ -279,7 +279,7 @@ class Dashboard(QWidget):
         self.light_value.setText(str(data.get('solarradiation', '--')))        # PM2.5 and AQI update
         pm25 = data.get('pm25', None)
         if pm25 is None or pm25 == '--':
-            pm25 = data.get('pm25_in', '--')
+            pm25 = data.get('pm25_out', '--')
         self.pm25_widget.setText(f"PM2.5: {pm25} μg/m³")
         try:
             pm25_val = float(pm25)
