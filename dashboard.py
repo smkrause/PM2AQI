@@ -246,8 +246,14 @@ class Dashboard(QWidget):
     def fetch_and_update(self):
         self.async_fetch()
 
+    def closeEvent(self, event):
+        self.refresh_timer.stop()
+        super().closeEvent(event)
+
     @asyncSlot()
     async def async_fetch(self):
+        if not self.isVisible():
+            return
         data, error = await run_in_executor(self.fetch_weather_from_ambient, self.api_key, self.app_key)
         if error:
             return
@@ -258,8 +264,12 @@ class Dashboard(QWidget):
         self.out_hum.setText(f"{data.get('humidity', '--')}%")
         self.in_temp.setText(f"{data.get('tempinf', '--')} °F")
         self.in_hum.setText(f"{data.get('humidityin', '--')}%")
-        self.pressure_value.setText(str(data.get('baromrelin', '--')))
-        self.uv_value.setText(str(data.get('uv', '--')))
+        # Use absolute pressure (baromabsin) and rounded solar radiation
+        self.pressure_value.setText(str(data.get('baromabsin', '--')))
+        solrad = data.get('solarradiation', '--')
+        if isinstance(solrad, float) or isinstance(solrad, int):
+            solrad = str(int(round(solrad)))
+        self.light_value.setText(solrad)
         # Set UVI level text
         try:
             uvi = float(data.get('uv', 0))
