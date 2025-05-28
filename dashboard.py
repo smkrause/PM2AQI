@@ -188,6 +188,7 @@ class Dashboard(QWidget):
         self.pressure_value = QLabel("29.91")
         self.pressure_value.setFont(font_large)
         self.pressure_value.setStyleSheet("color: #fff;")
+        self.pressure_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
         pressure_unit = QLabel("inHg")
         pressure_unit.setFont(font_small)
         pressure_unit.setStyleSheet("color: #fff;")
@@ -231,6 +232,7 @@ class Dashboard(QWidget):
         self.light_value = QLabel("286")
         self.light_value.setFont(font_large)
         self.light_value.setStyleSheet("color: #fff;")
+        self.light_value.setAlignment(Qt.AlignmentFlag.AlignCenter)
         light_unit = QLabel("W/m²")
         light_unit.setFont(font_small)
         light_unit.setStyleSheet("color: #fff;")
@@ -268,7 +270,7 @@ class Dashboard(QWidget):
         self.pressure_value.setText(str(data.get('baromabsin', '--')))
         solrad = data.get('solarradiation', '--')
         if isinstance(solrad, float) or isinstance(solrad, int):
-            solrad = str(int(round(solrad)))
+            solrad = str(int(round(solrad, 0)))  # round to nearest integer
         self.light_value.setText(solrad)
         # Set UVI level text
         try:
@@ -286,7 +288,7 @@ class Dashboard(QWidget):
             self.uv_level.setText(level)
         except Exception:
             self.uv_level.setText("--")
-        self.light_value.setText(str(data.get('solarradiation', '--')))        # PM2.5 and AQI update
+        # PM2.5 and AQI update
         pm25 = data.get('pm25', None)
         if pm25 is None or pm25 == '--':
             pm25 = data.get('pm25_out', '--')
