@@ -311,14 +311,18 @@ class Dashboard(QWidget):
         self.forecast_icon.setText(icon_map.get(forecast, '☁️'))
         # Time and date (single line, always current local time)
         from datetime import datetime
-        import time as _time
         try:
-            from zoneinfo import ZoneInfo
+            from zoneinfo import ZoneInfo  # Python 3.9+
             tz_pacific = ZoneInfo("America/Los_Angeles")
+            now = datetime.now(tz_pacific)
         except ImportError:
-            from pytz import timezone
+            from pytz import timezone, utc
             tz_pacific = timezone("US/Pacific")
-        now = datetime.now(tz_pacific)
+            # Use the same pattern as pm2aqi.py for consistency
+            now_utc = datetime.utcnow()
+            import pytz
+            now_utc = now_utc.replace(tzinfo=pytz.utc)
+            now = now_utc.astimezone(tz_pacific)
         # Use platform-independent hour formatting (no leading zero, no '-')
         hour = now.strftime('%I').lstrip('0') or '0'
         minute = now.strftime('%M')
